@@ -1,0 +1,246 @@
+---
+title: "Project_2"
+author: "Peter Ching-Tze Ip"
+date: "September 24, 2015"
+output: html_document
+---
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+```{r, message = F, warning = F}
+require(ggplot2)
+require(dplyr)
+require(knitr)
+require(scales)
+require(grid)
+```
+
+For each year, the table contains number of tons of PM2.5 emitted from a specific type of source for the entire year.
+    fips: A five-digit number (represented as a string) indicating the U.S. county
+    SCC: The name of the source as indicated by a digit string (see source code classification table)
+    Pollutant: A string indicating the pollutant
+    Emissions: Amount of PM2.5 emitted, in tons
+    type: The type of source (point, non-point, on-road, or non-road)
+    year: The year of emissions recorded
+
+```{r, message = F, warning = F}
+setwd("~/Documents/JH_Courses/JH_Data/Project_2/")
+NEI <- readRDS("~/Documents/JH_Courses/JH_Data/Project_2/exdata_data_NEI_data/summarySCC_PM25.rds")
+row.names(NEI) <- NULL
+SCC <- readRDS("~/Documents/JH_Courses/JH_Data/Project_2/exdata_data_NEI_data/Source_Classification_Code.rds")
+row.names(SCC) <- NULL
+dir()
+View(NEI[(1:10),])
+View(SCC[(1:10),])
+
+# The overall goal of this assignment is to explore the National Emissions Inventory database and see what it say about fine particulate matter pollution in the United states over the 10-year period 1999–2008. You may use any R package you want to support your analysis.
+# Questions
+
+# You must address the following questions and tasks in your exploratory analysis. For each question/task you will need to make a single plot. Unless specified, you can use any plotting system in R to make your plot.
+```
+
+(1) Have total emissions from PM2.5 decreased in the United States from 1999 to 2008? Using the base plotting system, make a plot showing the total PM2.5 emission from all sources for each of the years 1999, 2002, 2005, and 2008.
+
+```{r, message = F, warning = F}
+yrEmissTot <- aggregate(Emissions ~ year, FUN = sum, data = NEI)
+barplot(
+          (yrEmissTot$Emissions)/10^6,
+           names.arg = yrEmissTot$year,
+           xlab = "Year",
+           ylab = expression(PM[2.5]*~Emissions~" ("*10^"6"*" Tons)" ),
+           main = "Plot 1: Total Yearly Emissions from PM[2.5]
+          in the United States from 1999-2008"
+) 
+
+# Doing it in ggplot
+Q1 <- function(){
+                  ggplot(yrEmissTot, aes(x = as.factor(year), y = Emissions/(10^6))) + 
+                  ggtitle('Plot1: Total Yearly PM[2.5]\nEmission in the United States from 1999-2008') +
+                  geom_bar(stat = "identity") +
+                  xlab("Year") +
+                  ylab(expression(PM[2.5]*~Emissions~" ("*10^"6"*" Tons)" ))
+                  dev.copy(png, file = "plot1.png", width = 480, height = 480)
+                  dev.off()
+                  cat("Plot1.png has been saved in", getwd())
+                  }
+Q1()
+```
+
+(2) Have total emissions from PM2.5 decreased in the Baltimore City, Maryland (fips == "24510") from 1999 to 2008? Use the base plotting system to make a plot answering this question.
+```{r, message = F, warning = F}
+
+bMore_NEI <- filter(NEI, fips == "24510")
+yrEmissTot_bMore <- aggregate(Emissions ~ year, FUN = sum, data = bMore_NEI)
+
+barplot(
+        yrEmissTot_bMore$Emissions/(10^2),
+        names.arg=yrEmissTot_bMore$year,
+        xlab = "Year",
+        ylab = expression(PM[2.5]*~Emissions~" ("*10^"2"*" Tons)" ),
+        main="Plot 2: Total Yearly PM2.5 Emissions 
+        in Baltimore City, Maryland from 1999-2008"
+)
+
+# Doing it in ggplot
+Q2 <- function(){
+                  ggplot(yrEmissTot_bMore, aes(x = as.factor(year), y = Emissions/(10^2))) + 
+                  ggtitle('Plot 2: Total Yearly PM[2.5] Emissions 
+                          in the United States from 1999-2008') +
+                  geom_bar(aes(fill = year), stat = "identity") +
+                  xlab("Year") +
+                  ylab(expression(PM[2.5]*~Emissions~" ("*10^"2"*" Tons)" )) +
+                  guides(fill = FALSE)
+                  dev.copy(png, file = "plot2.png", width = 480, height = 480)
+                  dev.off()
+                  cat("Plot2.png has been saved in", getwd())
+                  }
+Q2()
+
+# In general, total emissions from PM2.5 have decreased in Baltimore from 1999 to 2008.
+```
+
+(3) Of the four types of sources indicated by the type (point, nonpoint, onroad, nonroad) variable, which of these four sources have seen decreases in emissions from 1999–2008 for Baltimore City? Which have seen increases in emissions from 1999–2008? Use the ggplot2 plotting system to make a plot answer this question.
+```{r, message = F, warning = F}
+#from Baltimore data, facet_grid type
+Q3 <- function(){
+                  ggplot(bMore_NEI, aes(as.factor(year), Emissions, fill = type)) +
+                  ggtitle(expression(paste("Plot 3: Total PM"[2.5]*" Emissions by Type in Baltimore City from 1999-2008"))) +
+                  geom_bar(stat = "identity") +
+                  facet_grid(. ~ type, scales = "free", space="free") + 
+                  xlab("year") +
+                  ylab(expression(paste("PM"[2.5]*" Emission (Tons)"))) +
+                  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+                  guides(fill = FALSE)
+                  dev.copy(png, file ="plot3.png", width = 480, height = 480)
+                  dev.off()
+                  cat("Plot3.png has been saved in", getwd())
+}
+Q3()
+
+# Emissions from the 'non-road', 'nonpoint', 'on-road' types have decreased  whereas emissions from the 'point' type increased from 1999-2008 in Baltimore, MD. The 'point' type, however, did observe a decrease in emission after the 2005 year.
+
+```
+
+(4) Across the United States, how have emissions from coal combustion-related sources changed from 1999–2008?
+
+```{r, message = F, warning = F}
+# from SCC data level three or four
+# Subset coal combustion related NEI data
+# Brief data description: EI.Sector - sector, level 1 - equipment, level 2-purpose, level 3 - material used, level 4 - material produced
+# Want to subset coal & combustion then combine sets to give coal combustion. Looking at number of times appearing in each variable (e.g. Cell burner, waste coal not combustion?)
+table(grepl("comb", SCC$EI.Sector, ignore.case = TRUE)) #530 times
+table(grepl("comb", SCC$SCC.Level.One, ignore.case = TRUE)) #569 times - Choose this
+table(grepl("coal", SCC$SCC.Level.Three, ignore.case = TRUE)) #181 times - Choose this
+table(grepl("coal", SCC$SCC.Level.Four, ignore.case = TRUE)) #126 times
+
+#Will use Level.One for 'combustion', and assume Level.Three for 'coal' to give logical values
+
+combustion <- grepl(pattern = "comb", SCC$SCC.Level.One, ignore.case = TRUE)
+coal <- grepl(pattern = "coal", SCC$SCC.Level.Three, ignore.case = TRUE)
+# coal <- grepl(pattern = "coal", SCC$SCC.Level.Four, ignore.case=TRUE)
+# To get a list of SCC values with coal combustion...
+# coalCombustion <- (combustion & coal)
+# SCC_coalCombustion <- SCC[coalCombustion,]$SCC
+
+# -OR-
+SCC_coalCombustion <- SCC[which(coal == TRUE & combustion == TRUE),]$SCC
+# -OR-
+# coalCombustion_SCC <- SCC[which(grepl(pattern = "coal", SCC$SCC.Level.Three, ignore.case = TRUE) == TRUE & grepl(pattern = "comb", SCC$SCC.Level.One, ignore.case = TRUE) == TRUE),]$SCC
+
+NEI_select <- NEI[NEI$SCC %in% SCC_coalCombustion, ]
+# NEI_select <- subset(NEI, NEI$SCC == coalCombustion_SCC) # only creates observations with first observations
+
+Q4 <- function(){
+                ggplot(NEI_select, aes(as.factor(year), Emissions/(10^5))) +
+                ggtitle(expression("Plot 4:Total PM"[2.5]*" Coal Combustion Emissions in the US (1999-2008)")) +
+                geom_bar(aes(fill = year), stat = "identity") +
+                guides(fill = FALSE) +
+                xlab("year") +
+                ylab(expression("PM"[2.5]*" Emission ("*10^"5"*" Tons)")) +
+                scale_y_continuous(breaks = seq(0, 6, 1))
+                dev.copy(png, file ="plot4.png", width = 480, height = 480)
+                dev.off()
+                cat("Plot4.png has been saved in", getwd())
+}
+Q4()
+
+```
+
+(5) How have emissions from motor vehicle sources changed from 1999–2008 in Baltimore City?
+
+```{r, message = F, warning = F}
+table(grepl("vehicle", SCC$EI.Sector, ignore.case = TRUE)) #1138
+table(grepl("vehicle", SCC$SCC.Level.Two, ignore.case = TRUE)) #1452 Use this one
+table(grepl("vehicle", SCC$SCC.Level.Three, ignore.case = TRUE)) #552
+vehicles <- grepl("vehicle", SCC$SCC.Level.Two, ignore.case = TRUE)
+
+# Vehicles from SCC in NEI
+SCC_vehicles <- SCC[vehicles, ]$SCC
+# -OR-
+# SCC_vehicles <- SCC[which(vehicles == TRUE),]$SCC
+
+NEI_vehicles <- NEI[NEI$SCC %in% SCC_vehicles,]
+
+bMore_NEI_vehicles <- filter(NEI_vehicles, fips == "24510")
+row.names(bMore_NEI_vehicles) <- NULL
+# 
+Q5 <- function(){
+                ggplot(bMore_NEI_vehicles, aes(as.factor(year), Emissions)) +
+                ggtitle(expression("Plot 5:Total PM"[2.5]*" Motor Vehicle Emissions in Baltimore, MD (1999-2008)")) +
+                geom_bar(aes(fill = year), stat = "identity") +
+                xlab("year") +
+                ylab(expression("Total PM"[2.5]*" Emission (Tons)")) +
+                guides(fill = FALSE)
+                dev.copy(png, file ="plot5.png", width = 480, height = 480)
+                dev.off()
+                cat("Plot5.png has been saved in", getwd())
+}
+Q5()
+
+```
+
+(6) Compare emissions from motor vehicle sources in Baltimore City with emissions from motor vehicle sources in Los Angeles County, California (fips == "06037"). Which city has seen greater changes over time in motor vehicle emissions?
+
+```{r, message = F, warning = F}
+NEI_vehicles_LAbMore <- filter(NEI_vehicles, fips == "24510" | fips == "06037")
+NEI_vehicles_LAbMore$city [NEI_vehicles_LAbMore$fips == "24510"] <- "Baltimore"
+NEI_vehicles_LAbMore$city [NEI_vehicles_LAbMore$fips == "06037"] <- "Los Angeles"
+
+
+Q6 <- function(){
+                  ggplot(NEI_vehicles_LAbMore, aes(x=year, y=Emissions/(10^3), fill = city)) +
+                  ggtitle(expression("Total PM"[2.5]*" Motor VehicleEmissions in Baltimore & LA (1999-2008)")) +
+                  geom_bar(aes(fill = year), stat="identity") +
+                  facet_grid(.~city) +
+                  guides(fill=FALSE) +
+                  xlab("year") +
+                  ylab(expression("PM"[2.5]*" Emission ("*10^"3"*~"Tons)")) 
+                  dev.copy(png, file ="plot6.png", width = 480, height = 480)
+                  dev.off()
+                  cat("Plot6.png has been saved in", getwd())
+}
+Q6()
+
+# # Normalize to 1999 levels for observing relative changes to emissions
+# MVPM25ByYearAndRegion <- ddply(NEI_vehicles_LAbMore, .(year, city), function(x) 
+#                                sum(x$Emissions))
+# colnames(MVPM25ByYearAndRegion)[3] <- "Emissions"
+# yrEmissTot_LAbMore <- aggregate(Emissions ~ year, FUN = sum, data = NEI_vehicles_LAbMore)
+# 
+# Emissions_bMore_1999 <- subset(yrEmissTot_LAbMore, year == 1999 & 
+#                             city == "Baltimore")$Emissions
+# Emissions_LA_1999 <- subset(yrEmissTot_LAbMore, year == 1999 & 
+#                            city == "Los Angeles")$Emissions
+# NEI_vehicles_LAbMore_norm <- transform(yrEmissTot_LAbMore,
+#                                        EmissionsNorm = ifelse(city == 
+#                                        "Baltimore",
+#                                        Emissions / Emissions_bMore_1999,
+#                                        Emissions / Emissions_LA_1999))
+# 
+# qplot(year, EmissionsNorm, data=NEI_vehicles_LAbMore_norm, geom="line", 
+#       color=city) + ggtitle(expression("Total" ~ PM[2.5] ~
+#       "Motor Vehicle Emissions Normalized to 1999 Levels")) + xlab("Year") +
+#       ylab(expression("Normalized" ~ PM[2.5] ~ "Emissions"))
+
+# Los Angeles has seen the greater changes over time in motor vehicle emissions
+```
